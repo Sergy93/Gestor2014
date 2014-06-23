@@ -3,6 +3,7 @@ package ui;
 import db.ObjectManager;
 import db.PersistenceWrapper;
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -12,6 +13,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.URL;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -22,6 +28,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
@@ -30,6 +37,12 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.TreePath;
 
+/**
+ * @author Sergio Jimenez Romero & Filip Veronel Enculescu
+ *
+ * This class is the main Frame This class is the main Frame This class is the
+ * main Frame
+ */
 public final class JavaDBManager extends JFrame {
 
     InterfaceManager intManager;
@@ -49,6 +62,11 @@ public final class JavaDBManager extends JFrame {
 
         objManager.showDatabases(tblShow);
 
+        intManager.launchLogin();
+
+        if (Variables.isAdminActive) {
+            mnShowLog.setEnabled(true);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -64,6 +82,7 @@ public final class JavaDBManager extends JFrame {
         btnInsert = new javax.swing.JButton();
         btnRename = new javax.swing.JButton();
         btnDelete = new javax.swing.JButton();
+        pnlInfo = new javax.swing.JPanel();
         btnSqlSelect = new javax.swing.JButton();
         btnSqlUpdate = new javax.swing.JButton();
         btnSqlDelete = new javax.swing.JButton();
@@ -71,6 +90,7 @@ public final class JavaDBManager extends JFrame {
         btnExecute = new javax.swing.JButton();
         scrollSql = new javax.swing.JScrollPane();
         txtSql = new javax.swing.JTextPane();
+        btnClear = new javax.swing.JButton();
         mbMenu = new javax.swing.JMenuBar();
         menuArchivo = new javax.swing.JMenu();
         mnUsers = new javax.swing.JMenuItem();
@@ -82,6 +102,7 @@ public final class JavaDBManager extends JFrame {
         mnAbout = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Gestor BD");
         setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
         setResizable(false);
 
@@ -136,6 +157,19 @@ public final class JavaDBManager extends JFrame {
 
         tbpTabs.addTab("Databases", pnlDatabases);
 
+        javax.swing.GroupLayout pnlInfoLayout = new javax.swing.GroupLayout(pnlInfo);
+        pnlInfo.setLayout(pnlInfoLayout);
+        pnlInfoLayout.setHorizontalGroup(
+            pnlInfoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 766, Short.MAX_VALUE)
+        );
+        pnlInfoLayout.setVerticalGroup(
+            pnlInfoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 453, Short.MAX_VALUE)
+        );
+
+        tbpTabs.addTab("Info", pnlInfo);
+
         btnSqlSelect.setText("Select");
 
         btnSqlUpdate.setText("Update");
@@ -144,9 +178,11 @@ public final class JavaDBManager extends JFrame {
 
         btnSqlInsert.setText("Insert");
 
-        btnExecute.setText("Ejecutar");
+        btnExecute.setText("Execute");
 
         scrollSql.setViewportView(txtSql);
+
+        btnClear.setText("Clear");
 
         menuArchivo.setText("File");
 
@@ -167,7 +203,7 @@ public final class JavaDBManager extends JFrame {
         mnSql.setText("SQL Commands");
         menuAyuda.add(mnSql);
 
-        mnShowLog.setText("Log as Admin");
+        mnShowLog.setText("Log History (Admin)");
         menuAyuda.add(mnShowLog);
 
         mnAbout.setText("About");
@@ -196,6 +232,8 @@ public final class JavaDBManager extends JFrame {
                         .addComponent(btnSqlDelete)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(btnSqlInsert)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btnClear)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(btnExecute)))
                 .addContainerGap())
@@ -216,7 +254,8 @@ public final class JavaDBManager extends JFrame {
                     .addComponent(btnSqlUpdate)
                     .addComponent(btnSqlDelete)
                     .addComponent(btnSqlInsert)
-                    .addComponent(btnExecute))
+                    .addComponent(btnExecute)
+                    .addComponent(btnClear))
                 .addGap(20, 20, 20))
         );
 
@@ -244,6 +283,7 @@ public final class JavaDBManager extends JFrame {
         });
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnClear;
     private javax.swing.JButton btnDelete;
     private javax.swing.JButton btnExecute;
     private javax.swing.JButton btnInsert;
@@ -262,6 +302,7 @@ public final class JavaDBManager extends JFrame {
     private javax.swing.JMenuItem mnSql;
     private javax.swing.JMenuItem mnUsers;
     private javax.swing.JPanel pnlDatabases;
+    private javax.swing.JPanel pnlInfo;
     private javax.swing.JScrollPane scrollDb;
     private javax.swing.JScrollPane scrollShow;
     private javax.swing.JScrollPane scrollSql;
@@ -273,6 +314,7 @@ public final class JavaDBManager extends JFrame {
 
     public void addListeners() {
 
+        txtSql.setContentType("text/html");
         Font currentFont = treeDatabases.getFont();
         Font bigFont = new Font(currentFont.getName(), currentFont.getStyle(), currentFont.getSize() + 3);
         treeDatabases.setFont(bigFont);
@@ -283,6 +325,7 @@ public final class JavaDBManager extends JFrame {
         mnShowLog.addActionListener(intManager);
         mnLogoff.addActionListener(intManager);
         mnUsers.addActionListener(intManager);
+        mnAbout.addActionListener(intManager);
 
         tblShow.addMouseListener(intManager);
 
@@ -291,6 +334,7 @@ public final class JavaDBManager extends JFrame {
         btnSqlSelect.addActionListener(intManager);
         btnSqlUpdate.addActionListener(intManager);
         btnExecute.addActionListener(intManager);
+        btnClear.addActionListener(intManager);
 
         btnInsert.addActionListener(intManager);
         btnDelete.addActionListener(intManager);
@@ -299,21 +343,168 @@ public final class JavaDBManager extends JFrame {
         treeDatabases.addTreeSelectionListener(intManager);
     }
 
+    // Method to load initial data
+    public void init() {
+        objManager.refreshDatabaseList();
+        objManager.loadDatabaseTree(treeDatabases);
+        objManager.showDatabases(tblShow);
+    }
+
+    // Method to clear all data form txtSql panel
+    public void clearPanel() {
+        txtSql.setText(null);
+    }
+
+    // Method to set text into txtsql
+    public void setText(String txt) {
+        txtSql.setText(txt);
+    }
+
+    // Method to show/hide menu option Log History
+    public void showLog(boolean status) {
+        mnShowLog.setEnabled(status);
+    }
+
+    // Method manage table
+    public JTable getTable() {
+        return tblShow;
+    }
+
     /**
-     * @author Sergio Jimenez Romero
+     * @author Sergio Jimenez Romero & Filip Veronel Enculescu
      *
      * This class handles all events related to the main frame interaction.
      */
     private class InterfaceManager extends MouseAdapter implements ActionListener, TreeSelectionListener {
 
-        //Checks buttons from menu and SQL text panel.
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            checkMenuButtons(e);
-            checkSqlButtons(e);
+        //  ----------- Filip----------- //
+        public void launchLogin() {
+            txtSql.setText(null);
+            Login l = new Login(JavaDBManager.this);
+            l.setLocationRelativeTo(null);
+            l.setVisible(true);
+            l.toFront();
         }
 
-        //Handles tree db selection.
+        public void webSql() {
+            try {
+                Desktop.getDesktop().browse(new URL("https://dev.mysql.com/doc/refman/5.0/es/sql-syntax.html").toURI());
+            } catch (Exception ex) {
+                Logger.getLogger(JavaDBManager.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+        }
+
+        public void readLog() {
+            txtSql.removeAll();
+            String linea;
+            String log = "";
+
+            try { //leemos el archivo con un FileReader y un BufferedReader
+                BufferedReader br = new BufferedReader(new FileReader("LOG.txt"));
+                while ((linea = br.readLine()) != null) {
+                    log = log + linea + "\n";
+                }
+                br.close();
+            } catch (IOException ex) {
+                System.out.println("No se ha creado el archivo");
+                Logger.getLogger(JavaDBManager.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            txtSql.setText(log);
+        }
+
+        //Tratamiento botones
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            Object o = e.getSource();
+            checkMenuButtons(e);
+            try {
+                checkSqlButtons(e);
+            } catch (SQLException ex) {
+                Logger.getLogger(JavaDBManager.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            if (o == mnShowLog) {
+                readLog();
+            }
+            if (o == mnLogoff) {
+                launchLogin();
+            }
+            if (o == mnExit) {
+                System.exit(0);
+            }
+            if (o == mnSql) {
+                webSql();
+            }
+            if (o == btnClear) {
+                clearPanel();
+            }
+            if (o == mnAbout) {
+                About s = new About();
+                s.setLocationRelativeTo(null);
+                s.setVisible(true);
+            }
+            if (o == mnUsers) {
+                AdminUsers a = new AdminUsers(JavaDBManager.this);
+                a.setLocationRelativeTo(null);
+                a.setVisible(true);
+                a.toFront();
+            }
+        }
+
+        public boolean checkSqlButtons(ActionEvent e) throws SQLException {
+            String table = ObjectManager.getActualTable();
+            boolean returnValue = true;
+
+            //TODO descomentar las lineas de select reales a usar en produccion.
+            if (e.getSource().equals(btnSqlSelect)) {
+                txtSql.setText("SELECT value FROM " + table + " WHERE field = 'value';");
+
+            } else if (e.getSource().equals(btnSqlDelete)) {
+                txtSql.setText("DELETE FROM " + table + " WHERE field = 'value';");
+            } else if (e.getSource().equals(btnSqlUpdate)) {
+                txtSql.setText("UPDATE " + table + " SET field = 'value' WHERE another_field = 'another_value';");
+            } else if (e.getSource().equals(btnSqlInsert)) {
+                txtSql.setText("INSERT INTO " + table + " (field1, field2, field3) VALUES ('value1', 'value2', 'value3');");
+            } else if (e.getSource().equals(btnExecute)) {
+                executeSql();
+            } else {
+                returnValue = false;
+            }
+            return returnValue;
+        }
+
+        private void executeSql() throws SQLException {
+            String sql = txtSql.getText().toString();
+            sql = sql.replaceAll("\\<.*?>", "").trim();
+            boolean successful = false;
+
+            if (sql.isEmpty()) {
+                txtSql.setText("<span style=\"color:red;\">ERROR: Sql EMPTY statement!!</span>");
+            }
+            if (sql.contains("ERROR")) {
+                txtSql.setText("<span style=\"color:red;\">Please write a correct SQL statement!!</span>");
+            }
+            if (sql.contains("SELECT")) {
+                successful = PersistenceWrapper.getInstance().select(sql, JavaDBManager.this);
+            }
+            if (sql.contains("INSERT")) {
+                successful = PersistenceWrapper.getInstance().insert(sql, JavaDBManager.this);
+            }
+            if (sql.contains("DELETE")) {
+                successful = PersistenceWrapper.getInstance().delete(sql, JavaDBManager.this);
+            }
+            if (sql.contains("UPDATE")) {
+                successful = PersistenceWrapper.getInstance().update(sql, JavaDBManager.this);
+            }
+
+            if (successful) {
+                //txtSql.add("Your sql command was executed correctly.");
+            } else {
+                //txtSql.setText("Your sql command could not be executed.");
+            }
+        }
+
+        //  ----------- Sergio----------- //
         @Override
         public void valueChanged(TreeSelectionEvent e) {
             TreePath path = e.getPath();
@@ -369,10 +560,12 @@ public final class JavaDBManager extends JFrame {
                         objManager.showRowsOnTable(tblShow, ObjectManager.getActualDatabase(), columnFirstValue);
                         break;
                     default:
+
                         String newValue = JOptionPane.showInputDialog(parent, "Write the new value:", rowValue);
                         objManager.updateRowValues(tblShow, columnName, rowValue, newValue);
                         break;
                 }
+
             }
         }
 
@@ -436,6 +629,7 @@ public final class JavaDBManager extends JFrame {
 
                         break;
                     default:
+
                         insertRow(ObjectManager.getActualTable());
                         break;
                 }
@@ -478,38 +672,6 @@ public final class JavaDBManager extends JFrame {
             return false;
         }
 
-        public boolean checkSqlButtons(ActionEvent e) {
-
-            boolean returnValue = true;
-
-            if (e.getSource().equals(btnSqlSelect)) {
-                txtSql.setText("SELECT value FROM table WHERE field = 'value';");
-            } else if (e.getSource().equals(btnSqlDelete)) {
-                txtSql.setText("DELETE FROM table WHERE field = 'value';");
-            } else if (e.getSource().equals(btnSqlUpdate)) {
-                txtSql.setText("UPDATE table SET field = 'value' WHERE another_field = 'another_value';");
-            } else if (e.getSource().equals(btnSqlInsert)) {
-                txtSql.setText("INSERT INTO table (field1, field2, field3) VALUES ('value1', 'value2', 'value3');");
-            } else if (e.getSource().equals(btnExecute)) {
-                boolean successful = objManager.executeSQL(txtSql.getText().toString());
-
-                if (successful) {
-                    txtSql.setText("Your sql command was executed correctly.");
-                } else {
-                    txtSql.setText("Your sql command could not be executed.");
-                }
-            } else {
-                returnValue = false;
-            }
-
-            return returnValue;
-        }
-
-        /**
-         * Shows the JCreateTable form and handles the creation of a new table
-         * 
-         */
-        
         public void createTable() {
 
             final ArrayList<JCreateTablePanel> panelsList = new ArrayList<>();
@@ -594,9 +756,9 @@ public final class JavaDBManager extends JFrame {
             containerDialog.setVisible(true);
         }
 
-        
         /**
          * Shows the JCreateTable form and handles the insertion of a new row.
+         *
          * @param tableName table where we will insert the row into.
          */
         public void insertRow(final String tableName) {
@@ -653,5 +815,6 @@ public final class JavaDBManager extends JFrame {
             containerDialog.setSize(rowContainerDimension.width + 20, rowContainerDimension.height + row.getPreferredSize().height);
             containerDialog.setVisible(true);
         }
+
     }
 }
